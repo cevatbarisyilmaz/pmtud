@@ -14,9 +14,9 @@ func check(ip net.IP, size int) (bool, int, error) {
 		outByte, _ := exec.Command("ping", "-c", strconv.Itoa(NumberOfMessages), "-s", strconv.Itoa(size), "-M", "do", ip.String()).Output()
 		outString := string(outByte)
 		if strings.Contains(outString, "Message too long") {
-			regex := regexp.MustCompile(`mut=\d+`)
+			regex := regexp.MustCompile(`mtu=\d+`)
 			inv := regex.FindString(outString)
-			mtuString := strings.TrimPrefix(inv, "mut=")
+			mtuString := strings.TrimPrefix(inv, "mtu=")
 			if mtuString != "" {
 				mtu, err := strconv.Atoi(mtuString)
 				if err == nil {
