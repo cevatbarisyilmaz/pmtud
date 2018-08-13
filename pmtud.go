@@ -21,7 +21,6 @@ var NumberOfMessages = 3
 var TimeOutDuration = 5000
 
 var (
-	TimeOutError  = errors.New("ping request timed out")
 	Unimplemented = errors.New("pmtud is  not implemented for this OS")
 	NoRecord      = errors.New("no IP record is found for given host")
 )
@@ -45,32 +44,65 @@ func Pmtud(addr string) (int, error) {
 	} else {
 		overhead = MinIPv4HeaderSize + ICMPHeaderSize
 	}
-	max := 65500
+	max := 65520
 	min := 0
+	good, rec, err := check(ip, 1500-overhead)
+	if err != nil {
+		return 0, err
+	}
+	if good {
+		min = 1500
+		good, rec, err = check(ip, 1501-overhead)
+		if err != nil {
+			return 0, err
+		}
+		if !good {
+			return 1500, nil
+		}
+		min = 1501
+	}
+	if min == 1501 {
+		good, rec, err = check(ip, 65520-overhead)
+		if err != nil {
+			return 0, err
+		}
+		if good {
+			return 65520, nil
+		}
+	}
+	for rec != 0 {
+		good, nRec, err := check(ip, rec-overhead)
+		if err != nil {
+			return 0, err
+		}
+		if good {
+			good, _, err = check(ip, rec+1-overhead)
+			if err != nil {
+				return 0, err
+			}
+			if !good {
+				return rec, nil
+			}
+			if min < rec+1 {
+				min = rec + 1
+				break
+			}
+		} else {
+			if nRec >= rec {
+				break
+			}
+		}
+		rec = nRec
+	}
 	for max != min {
 		pmtu := int(math.Round(float64(max+min) / 2))
-		good, rec, err := check(ip.String(), pmtu)
+		good, _, err := check(ip, pmtu)
 		if err != nil {
 			return 0, err
 		}
 		if good {
 			min = pmtu
 		} else {
-			if rec != 0 {
-				good, _, err := check(ip.String(), rec-overhead)
-				if err != nil {
-					return 0, err
-				}
-				if good {
-					good, _, err := check(ip.String(), rec+1-overhead)
-					if err != nil {
-						return 0, err
-					}
-					if !good {
-						return rec, nil
-					}
-				}
-			}
 			max = pmtu - 1
 		}
 	}
