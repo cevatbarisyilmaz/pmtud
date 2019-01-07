@@ -11,7 +11,7 @@ go get github.com/cevatbarisyilmaz/pmtud
 ## Usage
 
 ```go
-pmtu, err := Pmtud(addr)
+pmtu, err := pmtud.Pmtud(addr)
 ```
 
 ## Supported Operating Systems
